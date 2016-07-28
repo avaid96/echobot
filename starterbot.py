@@ -1,15 +1,42 @@
 import os
 import time
 from slackclient import SlackClient
+import re
 # starterbot's ID as an environment variable
 BOT_ID = os.environ.get("BOT_ID")
 
 # constants
+BOT_ID = "U1U4WHL92"
 AT_BOT = "<@" + BOT_ID + ">:"
-EXAMPLE_COMMAND = "echo"
+SAVE_COMMAND = "save"
+GET_COMMAND = "get"
 
-def do_stuff(command):
-	print command
+def save(command):
+    command = command[len(SAVE_COMMAND):]
+    return command
+
+def person(name):
+    avi = "avi"
+    if avi.lower() == name.lower():
+        return True
+
+def get(command):
+    command = command[len(SAVE_COMMAND):]
+    datereg = re.compile(r'\d{2}\/\d{2}\/\d{4}')
+    date = datereg.search(command)
+    querywords = command.split(' ')
+    if date is not None:
+        querywords = command.split(' ')
+        people = filter((lambda word: person(word)), querywords)
+        if len(people) > 0:
+            return date.group() + ' ' +' '.join(people)
+        return date.group()
+    else:
+        querywords = command.split(' ')
+        people = filter((lambda word: person(word)), querywords)
+        if len(people) > 0:
+            return ' '.join(people)
+        return "error"
 
 def handle_command(command, channel):
     """
@@ -17,11 +44,12 @@ def handle_command(command, channel):
         are valid commands. If so, then acts on the commands. If not,
         returns back what it needs for clarification.
     """
-    response = "Not sure what you mean. Use the *" + EXAMPLE_COMMAND + \
+    response = "Not sure what you mean. Use the *" + SAVE_COMMAND + \
                "* command with numbers, delimited by spaces."
-    if command.startswith(EXAMPLE_COMMAND):
-    	do_stuff(command)
-        response = command[len(EXAMPLE_COMMAND):]
+    if command.startswith(SAVE_COMMAND):
+        response = save(command)
+    if command.startswith(GET_COMMAND):
+        response = get(command)
     slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
 
