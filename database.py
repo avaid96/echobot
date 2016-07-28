@@ -15,9 +15,9 @@ def addToDB(date, person, data):
 	return result.inserted_id
 
 def findField(field, value):
+	docs = []
 	cursor = db.standup.find({field: value})
 	for document in cursor:
-		print (document)
-
-	return cursor.toArray()
+		docs.append(document)
+	return docs
 
