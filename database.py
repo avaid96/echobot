@@ -1,34 +1,38 @@
-from pymongo import MongoClient
+import time
+import datetime
 
-# use mongoclient to create a connection
-client = MongoClient()
-db = client.primer
+store = {}
 
-def addToDB(date, person, data):
-# Add in datetime
-	result = db.standup.insert_one (
-		{
-			"date": date,
-			"speaker": person,
-			"data":data
-		}
-	)
-	return result.inserted_id
+# dictionary format: data=[{fid: val1}, {fid: val2}, {msg: val3}]
+def addToDB(**kwargs):
+	date = getDate()
 
-# Either pass in one field or many fields (dictionary)
-def findField(d):
-	docs = []
-	cursor = db.standup.find(d)
-	for document in cursor:
-		docs.append(document)
-	return docs
+	if 'msg' in kwargs:
+		input_type = 'msg'
+		d = kwargs['msg']
+	if 'fid' in kwargs:
+		input_type = 'fid'
+		d = kwargs['fid']
 
+        entry = {input_type: d}
 
+	if date in store:
+		ls = store[date].append(entry)
+		store[date] = ls
+	else:
+		store[date] = [entry]
+	return entry
 
-# Add tag
+# get either entries with specified date or date and other flags 
+def get(date):
+	data = store[date]
+	return data
 
-def removeValue(d):
-	count = db.standup.count({field:value})
-	print "Deleting "  + str(count) + " entries"
-	cursor = db.standup.delete_many(d)
+def getDate():
+	now = datetime.datetime.now()
+	date = now.year + now.month + now.day
+	return date
 
+def remove(date):
+	if date in store:
+	store.pop(date, None)
