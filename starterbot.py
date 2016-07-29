@@ -22,7 +22,6 @@ def save(command):
 
 # to be used to look up a person
 def person(name):
-    print name
     if "name=" in name:
         return True
     return False
@@ -37,27 +36,47 @@ def get(command):
         querywords = command.split(' ')
         people = filter((lambda word: person(word)), querywords)
         if len(people) > 0:
+            people = map((lambda name: name[5:]), people)
             # here is where you should get a specific person's/people's standup
-            return date.group() + ' ' +' '.join(people)
-        #g here is where you get the full snippet for that date
+            targetdate = date.group()
+            # get the object list for this date and iterate through it parsing snippets up for people
+            return "here's what happened on " + targetdate + ": \n" + '\n'.join(people)
+        # here is where you get the full snippets for that date
         return date.group()
     else:
         return "please specify a date"
 
 # used to parse a snippet's text to return personwise standup
-def parsesnippet(sniptxt):
-    lines = sniptxt.split("\n")
-    for line in lines[1:]:
-        if line=="\r":
-            continue
-        personreg = re.compile(r'([A-Z]|[a-z])+:.+')
-        personst = personreg.search(line)
-        if personst is not None:
-            personst = personst.group()
-            splitst = personst.split(":", 1)
-            person = split[0]
-
-    return None
+def parsesnippet(fileid, personlist):
+    url = "https://slack.com/api/files.info?token=%s&file=%s&pretty=1" % (SLACK_TOKEN, fileid)
+    response = requests.request("GET", url)
+    resjson = response.json()
+    contentlist = []
+    if resjson and "file" in resjson and "url_private_download" in resjson["file"]:
+        url = resjson['file']["url_private_download"]
+        auth = "Bearer %s" % SLACK_TOKEN
+        headers = {
+                'authorization': auth,
+                    'cache-control': "no-cache",
+                        }
+        response = requests.request("GET", url, headers=headers)
+        sniptxt = response.text
+        lines = sniptxt.split("\n")
+        for line in lines[1:]:
+            if line=="\r":
+                continue
+            personreg = re.compile(r'([A-Z]|[a-z])+:.+')
+            personst = personreg.search(line)
+            if personst is not None:
+                personst = personst.group()
+                splitst = personst.split(":", 1)
+                person = split[0]
+                if person in personlist:
+                    content = split[1]
+                    contentlist.append(content)
+    if contentlist==[]:
+        return None
+    return contentlist
 
 # returns true if it is a standup or a sync
 def isstandup(sniptxt):
@@ -133,6 +152,8 @@ def parse_slack_output(slack_rtm_output):
                        output['channel']
     return None, None
 
+a="abc"
+print a.strip("\"")
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 if __name__ == "__main__":
     READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
