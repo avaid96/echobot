@@ -1,5 +1,6 @@
 import time
 import datetime
+import pickle
 
 store = {}
 
@@ -14,25 +15,34 @@ def addToDB(**kwargs):
 		input_type = 'fid'
 		d = kwargs['fid']
 
-        entry = {input_type: d}
+	entry = {input_type: d}
 
 	if date in store:
-		ls = store[date].append(entry)
-		store[date] = ls
+		store[date].append(entry)
 	else:
 		store[date] = [entry]
 	return entry
 
 # get either entries with specified date or date and other flags 
 def get(date):
-	data = store[date]
-	return data
+	if date in store:
+		data = store[date]
+		return data
+	return -1
 
 def getDate():
 	now = datetime.datetime.now()
-	date = now.year + now.month + now.day
+	date = str(now.month) +"/"+ str(now.day) + "/" + str(now.year)
 	return date
 
 def remove(date):
 	if date in store:
-	store.pop(date, None)
+		del store[date]
+
+def save(filename):
+	with open(filename, 'wb') as storage:
+		pickle.dump(store, storage)
+
+def load(filename):
+	with open(filename, 'rb') as storage:
+		return pickle.load(storage)

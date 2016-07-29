@@ -1,2 +1,4 @@
 *.list
 .DS_Store
+*.pickle
+*.pyc

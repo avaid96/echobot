@@ -1,16 +1,26 @@
 import database
+import os 
 
-def main():
-	objID = database.addToDB("June", "Jess", "Merged first PR")
-	objID = database.addToDB("June", "Jess", "Merged first PR")
-	field = {"date":"June"}
-	array = database.findField(field)
-	for row in array:
-		print row 
+def testDB():
+	# new store
+	database.store = {}
+	# add to database
+	database.addToDB(fid = "test")
+	database.addToDB(msg = "anotherone")
+	# get from database
+	assert (database.get(database.getDate()))[0]['fid'] == "test"
+	assert (database.get(database.getDate()))[1]['msg'] == "anotherone"
+	# save database to pickle
+	database.save("temp.pickle")
+	# remove from database
+	database.remove(database.getDate())
+	assert database.get(database.getDate()) == -1
+	# load database from pickle
+	database.store = database.load("temp.pickle")
+	# get from database
+	assert (database.get(database.getDate()))[0]['fid'] == "test"
+	assert (database.get(database.getDate()))[1]['msg'] == "anotherone"
+	os.remove("temp.pickle")
 
-	fields = {"date":"June", "speaker":"Jess"}
-	array = database.findField(fields)
-	for row in array:
-		print row 
-
-main()
+if __name__ == "__main__":
+	testDB()
