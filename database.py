@@ -5,7 +5,8 @@ client = MongoClient()
 db = client.primer
 
 def addToDB(date, person, data):
-	result = db.standup.insert_one(
+# Add in datetime
+	result = db.standup.insert_one (
 		{
 			"date": date,
 			"speaker": person,
@@ -14,10 +15,20 @@ def addToDB(date, person, data):
 	)
 	return result.inserted_id
 
-def findField(field, value):
+# Either pass in one field or many fields (dictionary)
+def findField(d):
 	docs = []
-	cursor = db.standup.find({field: value})
+	cursor = db.standup.find(d)
 	for document in cursor:
 		docs.append(document)
 	return docs
+
+
+
+# Add tag
+
+def removeValue(d):
+	count = db.standup.count({field:value})
+	print "Deleting "  + str(count) + " entries"
+	cursor = db.standup.delete_many(d)
 
