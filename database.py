@@ -1,5 +1,5 @@
 import time
-import datetime
+from datetime import datetime
 import pickle
 
 store = {}
@@ -31,7 +31,7 @@ def get(date):
 	return -1
 
 def getDate():
-	now = datetime.datetime.now()
+	now = datetime.now()
 	date = str(now.month) +"/"+ str(now.day) + "/" + str(now.year)
 	return date
 

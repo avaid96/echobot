@@ -4,6 +4,8 @@ from slackclient import SlackClient
 import re
 import requests
 from fuzzywuzzy import fuzz
+import database as db
+import pickle
 
 # starterbot's ID as an environment variable
 BOT_ID = os.environ.get("BOT_ID")
@@ -18,7 +20,9 @@ GET_COMMAND = "get"
 def save(command):
     command = command[len(SAVE_COMMAND):]
     # db call to save the string here
-    return command
+    db.addToDB(msg = command)
+    db.save("/volume/data.pickle")
+    return True
 
 # to be used to look up a person
 def person(name):
@@ -29,20 +33,24 @@ def person(name):
 # to be used to get history
 def get(command):
     command = command[len(SAVE_COMMAND):]
-    datereg = re.compile(r'\d{2}\/\d{2}\/\d{4}')
+    datereg = re.compile(r'(1[0-2]|[1-9])\/(3[01]|[12][0-9]|[0-9])\/\d{4}')
     date = datereg.search(command)
     querywords = command.split(' ')
     if date is not None:
+        date = date.group()
+        date.lstrip("0")
         querywords = command.split(' ')
         people = filter((lambda word: person(word)), querywords)
         if len(people) > 0:
             people = map((lambda name: name[5:]), people)
             # here is where you should get a specific person's/people's standup
-            targetdate = date.group()
             # get the object list for this date and iterate through it parsing snippets up for people
-            return "here's what happened on " + targetdate + ": \n" + '\n'.join(people)
+            return "here's what happened on " + date + ": \n" + '\n'.join(people)
         # here is where you get the full snippets for that date
-        return date.group()
+        hist = db.get(date)
+        if hist != -1:
+            return hist
+        return []
     else:
         return "please specify a date"
 
@@ -118,8 +126,24 @@ def handle_command(command, channel):
                "* command with numbers, delimited by spaces."
     if command.startswith(SAVE_COMMAND):
         response = save(command)
+        if response == True:
+            return
     if command.startswith(GET_COMMAND):
         response = get(command)
+        if response == []:
+            slack_client.api_call("chat.postMessage", channel=channel,
+                          text="No history stored for this date", as_user=True)
+            return
+        for resp in response:
+            if "msg" in resp:
+                resp = resp["msg"]
+            elif "fid" in resp:
+                resp = resp["fid"]
+            else:
+                resp=None
+            slack_client.api_call("chat.postMessage", channel=channel,
+                          text=resp, as_user=True)
+        return
     if command.startswith("id:"):
         # make sure it's a snippet and not another file that we may end up caching
         command = command[3:]
@@ -152,8 +176,12 @@ def parse_slack_output(slack_rtm_output):
                        output['channel']
     return None, None
 
-a="abc"
-print a.strip("\"")
+if os.path.exists("/volume/data.pickle"):
+    db.store = db.load("/volume/data.pickle")
+else:
+    pickle.dump({}, open("/volume/data.pickle", 'w+'))
+    db.store = db.load("/volume/data.pickle")
+
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 if __name__ == "__main__":
     READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
