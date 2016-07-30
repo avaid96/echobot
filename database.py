@@ -5,7 +5,7 @@ import pickle
 store = {}
 
 # dictionary format: data=[{fid: val1}, {fid: val2}, {msg: val3}]
-def addToDB(**kwargs):
+def addToDB(ch, **kwargs):
 	date = getDate()
 
 	if 'msg' in kwargs:
@@ -15,7 +15,7 @@ def addToDB(**kwargs):
 		input_type = 'fid'
 		d = kwargs['fid']
 
-	entry = {input_type: d}
+	entry = {input_type: d, "channel": ch}
 
 	if date in store:
 		store[date].append(entry)
@@ -24,11 +24,14 @@ def addToDB(**kwargs):
 	return entry
 
 # get either entries with specified date or date and other flags 
-def get(date):
+def get(ch, date):
+	result = []
 	if date in store:
 		data = store[date]
-		return data
-	return -1
+		for item in data:
+			if item["channel"]==ch:
+				result.append(item)
+	return result		
 
 def getDate():
 	now = datetime.now()

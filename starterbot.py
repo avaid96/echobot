@@ -17,11 +17,11 @@ SAVE_COMMAND = "save"
 GET_COMMAND = "get"
 
 # to be replaced by database add row function
-def save(command):
+def save(ch, command):
     command = command[len(SAVE_COMMAND):]
     # db call to save the string here
-    db.addToDB(msg = command)
-    db.save("/volume/data.pickle")
+    db.addToDB(ch, msg = command)
+    db.save("/volume/slackdb.pickle")
     return True
 
 # to be used to look up a person
@@ -31,7 +31,7 @@ def person(name):
     return False
 
 # to be used to get history
-def get(command):
+def get(ch, command):
     command = command[len(SAVE_COMMAND):]
     datereg = re.compile(r'(1[0-2]|[1-9])\/(3[01]|[12][0-9]|[0-9])\/\d{4}')
     date = datereg.search(command)
@@ -47,10 +47,8 @@ def get(command):
             # get the object list for this date and iterate through it parsing snippets up for people
             return "here's what happened on " + date + ": \n" + '\n'.join(people)
         # here is where you get the full snippets for that date
-        hist = db.get(date)
-        if hist != -1:
-            return hist
-        return []
+        hist = db.get(ch, date)
+        return hist
     else:
         return "please specify a date"
 
@@ -125,14 +123,14 @@ def handle_command(command, channel):
     response = "Not sure what you mean. Use the *" + SAVE_COMMAND + \
                "* command with numbers, delimited by spaces."
     if command.startswith(SAVE_COMMAND):
-        response = save(command)
+        response = save(channel, command)
         if response == True:
             return
     if command.startswith(GET_COMMAND):
-        response = get(command)
+        response = get(channel, command)
         if response == []:
             slack_client.api_call("chat.postMessage", channel=channel,
-                          text="No history stored for this date", as_user=True)
+                          text="No history stored for this date for your channel", as_user=True)
             return
         for resp in response:
             if "msg" in resp:
@@ -176,11 +174,11 @@ def parse_slack_output(slack_rtm_output):
                        output['channel']
     return None, None
 
-if os.path.exists("/volume/data.pickle"):
-    db.store = db.load("/volume/data.pickle")
+if os.path.exists("/volume/slackdb.pickle"):
+    db.store = db.load("/volume/slackdb.pickle")
 else:
-    pickle.dump({}, open("/volume/data.pickle", 'w+'))
-    db.store = db.load("/volume/data.pickle")
+    pickle.dump({}, open("/volume/slackdb.pickle", 'w+'))
+    db.store = db.load("/volume/slackdb.pickle")
 
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 if __name__ == "__main__":
