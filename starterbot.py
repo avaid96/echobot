@@ -94,7 +94,7 @@ def isstandup(sniptxt):
     return False
 
 # to be used to save a snippet where we save the id of it if it meets a criterion
-def savesnippet(fileid):
+def savesnippet(ch, fileid):
     url = "https://slack.com/api/files.info?token=%s&file=%s&pretty=1" % (SLACK_TOKEN, fileid)
     response = requests.request("GET", url)
     resjson = response.json()
@@ -110,7 +110,8 @@ def savesnippet(fileid):
             sniptxt = response.text
             if isstandup(sniptxt):
                 # put in a database call to save the fileid here
-                print fileid
+                db.addToDB(ch, msg = fileid)
+                db.save("/volume/slackdb.pickle")
                 return True
     return False
 
@@ -149,7 +150,7 @@ def handle_command(command, channel):
     if command.startswith("id:"):
         # make sure it's a snippet and not another file that we may end up caching
         command = command[3:]
-        response = savesnippet(command)  
+        response = savesnippet(channel, command)  
         if response is False:
             return
         else: 
