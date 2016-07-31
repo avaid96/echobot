@@ -60,6 +60,8 @@ def parsesnippet(fileid, personlist):
     contentlist = []
     if resjson and "file" in resjson and "url_private_download" in resjson["file"]:
         url = resjson['file']["url_private_download"]
+        if personlist==[]:
+            return url
         auth = "Bearer %s" % SLACK_TOKEN
         headers = {
                 'authorization': auth,
@@ -67,6 +69,7 @@ def parsesnippet(fileid, personlist):
                         }
         response = requests.request("GET", url, headers=headers)
         sniptxt = response.text
+        #here is where we'd be filtering by person
         lines = sniptxt.split("\n")
         for line in lines[1:]:
             if line=="\r":
@@ -80,9 +83,7 @@ def parsesnippet(fileid, personlist):
                 if person in personlist:
                     content = split[1]
                     contentlist.append(content)
-    if contentlist==[]:
-        return None
-    return contentlist
+    return '\n'.join(contentlist)
 
 # returns true if it is a standup or a sync
 def isstandup(sniptxt):
@@ -110,7 +111,7 @@ def savesnippet(ch, fileid):
             sniptxt = response.text
             if isstandup(sniptxt):
                 # put in a database call to save the fileid here
-                db.addToDB(ch, msg = fileid)
+                db.addToDB(ch, fid = fileid)
                 db.save("/volume/slackdb.pickle")
                 return True
     return False
@@ -135,13 +136,13 @@ def handle_command(command, channel):
             return
         if response == -1:
             slack_client.api_call("chat.postMessage", channel=channel,
-                          text="Please specify a date in (M)M/DD/YYYY format and use --name=\"user\" flags for specific persons", as_user=True)
+                          text="Please specify a date in (M)M/DD/YYYY format and use the optional --name=user flags for specific persons", as_user=True)
             return
         for resp in response:
             if "msg" in resp:
                 resp = resp["msg"]
             elif "fid" in resp:
-                resp = resp["fid"]
+                resp = parsesnippet(resp["fid"], [])
             else:
                 resp=None
             slack_client.api_call("chat.postMessage", channel=channel,
