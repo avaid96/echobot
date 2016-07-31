@@ -40,13 +40,7 @@ def get(ch, command):
         date = date.group()
         date.lstrip("0")
         querywords = command.split(' ')
-        people = filter((lambda word: person(word)), querywords)
-        if len(people) > 0:
-            people = map((lambda name: name[5:]), people)
-            # here is where you should get a specific person's/people's standup
-            # get the object list for this date and iterate through it parsing snippets up for people
-            return "here's what happened on " + date + ": \n" + '\n'.join(people)
-        # here is where you get the full snippets for that date
+        # here is where you get the full info for that date
         hist = db.get(ch, date)
         return hist
     else:
@@ -72,16 +66,14 @@ def parsesnippet(fileid, personlist):
         #here is where we'd be filtering by person
         lines = sniptxt.split("\n")
         for line in lines[1:]:
-            if line=="\r":
-                continue
             personreg = re.compile(r'([A-Z]|[a-z])+:.+')
             personst = personreg.search(line)
             if personst is not None:
                 personst = personst.group()
                 splitst = personst.split(":", 1)
-                person = split[0]
+                person = splitst[0]
                 if person in personlist:
-                    content = split[1]
+                    content = splitst[1]
                     contentlist.append(content)
     return '\n'.join(contentlist)
 
@@ -138,13 +130,18 @@ def handle_command(command, channel):
             slack_client.api_call("chat.postMessage", channel=channel,
                           text="Please specify a date in (M)M/DD/YYYY format and use the optional --name=user flags for specific persons", as_user=True)
             return
+        querywords = command.split(' ')
+        people = filter((lambda word: person(word)), querywords)
+        print people
+        people = map((lambda name: name[5:]), people)
+        print people
         for resp in response:
             if "msg" in resp:
+                if len(people)>0:
+                    continue
                 resp = resp["msg"]
             elif "fid" in resp:
-                resp = parsesnippet(resp["fid"], [])
-            else:
-                resp=None
+                resp = parsesnippet(resp["fid"], people)
             slack_client.api_call("chat.postMessage", channel=channel,
                           text=resp, as_user=True)
         return
