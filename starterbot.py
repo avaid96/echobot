@@ -50,7 +50,7 @@ def get(ch, command):
         hist = db.get(ch, date)
         return hist
     else:
-        return "please specify a date"
+        return -1
 
 # used to parse a snippet's text to return personwise standup
 def parsesnippet(fileid, personlist):
@@ -131,6 +131,10 @@ def handle_command(command, channel):
         if response == []:
             slack_client.api_call("chat.postMessage", channel=channel,
                           text="No history stored for this date for your channel", as_user=True)
+            return
+        if response == -1:
+            slack_client.api_call("chat.postMessage", channel=channel,
+                          text="Please specify a date in (M)M/DD/YYYY format and use --name=\"user\" flags for specific persons", as_user=True)
             return
         for resp in response:
             if "msg" in resp:
