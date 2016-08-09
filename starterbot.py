@@ -22,10 +22,9 @@ def save(ch, command):
     # db call to save the string here
     db.addToDB(ch, msg = command)
     db.save("/volume/slackdb.pickle")
-    return True
 
 # to be used to look up a person
-def person(name):
+def isperson(name):
     if "name=" in name:
         return True
     return False
@@ -118,33 +117,35 @@ def handle_command(command, channel):
                "* command with numbers, delimited by spaces."
     if command.startswith(SAVE_COMMAND):
         response = save(channel, command)
-        if response == True:
-            return
+        return
     if command.startswith(GET_COMMAND):
         response = get(channel, command)
-        if response == []:
-            slack_client.api_call("chat.postMessage", channel=channel,
-                          text="No history stored for this date for your channel", as_user=True)
-            return
         if response == -1:
             slack_client.api_call("chat.postMessage", channel=channel,
                           text="Please specify a date in (M)M/DD/YYYY format and use the optional --name=user flags for specific persons", as_user=True)
             return
+        if response == []:
+            slack_client.api_call("chat.postMessage", channel=channel,
+                          text="No history stored for this date for your channel", as_user=True)
+            return
         querywords = command.split(' ')
-        people = filter((lambda word: person(word)), querywords)
-        print people
+        # filter all occurences of name=xyz
+        people = filter((lambda word: isperson(word)), querywords)
+        # make all name=xyz -> xyz
         people = map((lambda name: name[5:]), people)
-        print people
         for resp in response:
             if "msg" in resp:
+                # don't return anything about saved texts if we're querying by person
                 if len(people)>0:
                     continue
                 resp = resp["msg"]
             elif "fid" in resp:
+                # will throw back relevant mentions of the person in the snippet or if not searching for a person, will throw back a link which will display all
                 resp = parsesnippet(resp["fid"], people)
             slack_client.api_call("chat.postMessage", channel=channel,
                           text=resp, as_user=True)
         return
+    # to track all snippets which have standup or sync with a > 70 fuzzy match ratio in their first line
     if command.startswith("id:"):
         # make sure it's a snippet and not another file that we may end up caching
         command = command[3:]
@@ -185,7 +186,7 @@ else:
 
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 if __name__ == "__main__":
-    READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
+    READ_WEBSOCKET_DELAY = 0.5 # 1 second delay between reading from firehose
     if slack_client.rtm_connect():
         print("StarterBot connected and running!")
         while True:
